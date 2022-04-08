@@ -14,7 +14,6 @@ unsigned long init_hex_fmt = 0;
 struct bigint {
 
   int size;
-  //little endian order
   mytype* parts;
 
 };
@@ -73,10 +72,11 @@ void grow(bigint* curr, int newLen) {
 }
 
 void chainAddition(bigint* op, mytype toAdd, int index) {
+  mytype t;
   if(index >= op->size) {
     grow(op, index + 1);
   }
-  mytype t = op->parts[index];
+  t = op->parts[index];
   op->parts[index] = t + toAdd;
   if(op->parts[index] < t || op->parts[index] < toAdd) {
     chainAddition(op, 1, index + 1);
@@ -87,28 +87,24 @@ void add(bigint* a1, bigint* a2) {
   int sz = MAX(a1->size, a2->size);
   int i;
   for(i = 0; i < sz; i++) {
-    // op->parts[index] += incrementor;
-    // if(i < a1->size) {
-    //   // op->parts[index] += a1->parts[index];
-    //   chainAddition(op, a1->parts[i], i);
-    // }
     if(i < a2->size) {
-      // op->parts[index] += a2->parts[index];
       chainAddition(a1, a2->parts[i], i);
     }
   }
 }
 
 void chainAdditionWithCustomOverflow(bigint* op, mytype toAdd, int index, mytype custom_overflow) {
+  int acc;
+  mytype max_val, t;
   if(toAdd == 0) {
     return;
   }
-  int acc = 0;
-  mytype max_val = -1;
+  acc = 0;
+  max_val = -1;
   if(index >= op->size) {
     grow(op, index + 1);
   }
-  mytype t = op->parts[index];
+  t = op->parts[index];
   op->parts[index] = t + toAdd;
   if(op->parts[index] < t || op->parts[index] < toAdd) {
     op->parts[index] += max_val - custom_overflow + 1;
@@ -137,7 +133,6 @@ void multiplyByTwo(bigint* a, mytype wrapVal) {
     }
     elem += a->parts[i];
     if(elem < a->parts[i]) {
-      //proper overflow not handled well as of now
       elem += max_val - wrapVal + 1;
       acc++;
     }
@@ -161,6 +156,8 @@ void multiplyByTwo(bigint* a, mytype wrapVal) {
 }
 
 int convertToBase(bigint *to, bigint* a, int base) {
+  int i,j,k;
+  mytype marker, markerOri, t;
   mytype largest_num_for_base = 1;
   mytype test_num = base;
   int power = 0;
@@ -170,12 +167,9 @@ int convertToBase(bigint *to, bigint* a, int base) {
     power++;
   }
   to->size = 0;
-  int i,j,k;
-  mytype marker = -1;
+  marker = -1;
   marker = marker ^ (marker >> 1);
-  mytype markerOri = marker;
-  mytype t;
-
+  markerOri = marker;
   for(i = a->size - 1; i > -1; i--) {
     if(to->size < i + 1) {
       grow(to, i + 1);
@@ -192,14 +186,13 @@ int convertToBase(bigint *to, bigint* a, int base) {
 }
 
 void printHexToString(char* buffer, bigint* a) {
+  int i, j;
   static char fmt_for_hex[50];
   if(init_hex_fmt == 0) {
     init_hex_fmt = 2 * sizeof(mytype);
     sprintf(fmt_for_hex, "%s%lu%s", "%0", init_hex_fmt, "lx");
   }
-
-  int i;
-  int j = 0;
+  j = 0;
   for(i = a->size - 1; i > -1; i--) {
     if(i == a->size - 1) {
       j += sprintf(buffer, "%lx", a->parts[i]);
@@ -211,10 +204,10 @@ void printHexToString(char* buffer, bigint* a) {
 
 void printBinaryToString(char* buffer, bigint* a) {
   int i,j,k;
-  mytype marker = -1;
+  mytype marker, markerOri, t;
+  marker = -1;
   marker = marker ^ (marker >> 1);
-  mytype markerOri = marker;
-  mytype t;
+  markerOri = marker;
 
   j = 0;
   for(i = a->size - 1; i > -1; i--) {
@@ -248,11 +241,12 @@ void printToString(char* buffer, bigint* a, base b) {
     printHexToString(buffer, a);
   } else if(b == BASE_10){
     bigint t;
-    int digits = convertToBase(&t, a, 10);
-    int i;
+    int i, j, digits;
     char fmt_for_base[50];
+
+    digits = convertToBase(&t, a, 10);
     sprintf(fmt_for_base, "%s%d%s", "%0", digits, "lu");
-    int j = 0;
+    j = 0;
     for(i = t.size - 1; i > -1; i--) {
       if(i == t.size - 1) {
         j += sprintf(buffer, "%lu", t.parts[i]);
