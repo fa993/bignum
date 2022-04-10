@@ -52,9 +52,7 @@ int equals(bigint* a, bigint* b) {
 
 void destroy(bigint* a1) {
   int i;
-  for(i = 0; i < a1->size; i++) {
-    free(a1->parts + i);
-  }
+  free(a1->parts);
   free(a1);
 }
 
@@ -155,17 +153,9 @@ void multiplyByTwo(bigint* a, mytype wrapVal) {
   }
 }
 
-int convertToBase(bigint *to, bigint* a, int base) {
+void convertToBase(bigint *to, bigint* a, mytype largest_num_for_base) {
   int i,j,k;
   mytype marker, markerOri, t;
-  mytype largest_num_for_base = 1;
-  mytype test_num = base;
-  int power = 0;
-  while(test_num >= largest_num_for_base) {
-    largest_num_for_base = test_num;
-    test_num *= base;
-    power++;
-  }
   to->size = 0;
   marker = -1;
   marker = marker ^ (marker >> 1);
@@ -181,24 +171,6 @@ int convertToBase(bigint *to, bigint* a, int base) {
       chainAdditionWithCustomOverflow(to, ((marker & t) > 0), 0,  largest_num_for_base);
       marker = marker >> 1;
     } while (marker > 0);
-  }
-  return power;
-}
-
-void printHexToString(char* buffer, bigint* a) {
-  int i, j;
-  static char fmt_for_hex[50];
-  if(init_hex_fmt == 0) {
-    init_hex_fmt = 2 * sizeof(mytype);
-    sprintf(fmt_for_hex, "%s%lu%s", "%0", init_hex_fmt, "lx");
-  }
-  j = 0;
-  for(i = a->size - 1; i > -1; i--) {
-    if(i == a->size - 1) {
-      j += sprintf(buffer, "%lx", a->parts[i]);
-    } else {
-      j += sprintf(buffer + j, fmt_for_hex, a->parts[i]);
-    }
   }
 }
 
@@ -234,24 +206,88 @@ void printBinaryToString(char* buffer, bigint* a) {
   }
 }
 
-void printToString(char* buffer, bigint* a, base b) {
-  if(b == BASE_2) {
-    printBinaryToString(buffer, a);
-  } else if(b == BASE_16) {
-    printHexToString(buffer, a);
-  } else if(b == BASE_10){
-    bigint t;
-    int i, j, digits;
-    char fmt_for_base[50];
+void printHexToString(char* buffer, bigint* a) {
+  int i, j;
+  static char fmt_for_hex[50];
+  if(init_hex_fmt == 0) {
+    init_hex_fmt = 2 * sizeof(mytype);
+    sprintf(fmt_for_hex, "%s%lu%s", "%0", init_hex_fmt, "lx");
+  }
+  j = 0;
+  for(i = a->size - 1; i > -1; i--) {
+    if(i == a->size - 1) {
+      j += sprintf(buffer, "%lx", a->parts[i]);
+    } else {
+      j += sprintf(buffer + j, fmt_for_hex, a->parts[i]);
+    }
+  }
+}
 
-    digits = convertToBase(&t, a, 10);
-    sprintf(fmt_for_base, "%s%d%s", "%0", digits, "lu");
-    j = 0;
-    for(i = t.size - 1; i > -1; i--) {
-      if(i == t.size - 1) {
-        j += sprintf(buffer, "%lu", t.parts[i]);
-      } else {
-        j += sprintf(buffer + j, fmt_for_base, t.parts[i]);
+void printDecimalToString(char* buffer, bigint* a) {
+  bigint t;
+  mytype test_num, largest_num_for_base;
+  int i, j, digits;
+  char fmt_for_base[50];
+  largest_num_for_base = 1;
+  test_num = 10;
+  while(test_num >= largest_num_for_base) {
+    largest_num_for_base = test_num;
+    test_num *= 10;
+    digits++;
+  }
+  convertToBase(&t, a, largest_num_for_base);
+  sprintf(fmt_for_base, "%s%d%s", "%0", digits, "lu");
+  j = 0;
+  for(i = t.size - 1; i > -1; i--) {
+    if(i == t.size - 1) {
+      j += sprintf(buffer, "%lu", t.parts[i]);
+    } else {
+      j += sprintf(buffer + j, fmt_for_base, t.parts[i]);
+    }
+  }
+}
+
+void printBaseToString(char* buffer, bigint* a, int b, char *encoding) {
+  bigint t;
+  int i, j, k, digits, offset;
+  mytype largest_num_for_base, test_num, duplicate;
+  char fmt_for_base[50];
+  largest_num_for_base = 1;
+  test_num = b;
+  digits = 0;
+  while(test_num >= largest_num_for_base) {
+    largest_num_for_base = test_num;
+    test_num *= b;
+    digits++;
+  }
+  convertToBase(&t, a, largest_num_for_base);
+  j = 0;
+  for(i = t.size - 1; i > -1; i--) {
+    if(i == t.size - 1) {
+      j = 0;
+      buffer[j + 1] = '\0';
+      duplicate = t.parts[i];
+      while (duplicate > 0) {
+        j++;
+        duplicate /= b;
+      }
+      duplicate = t.parts[i];
+      offset = digits - j;
+      buffer[j--] = '\0';
+      while (duplicate > 0) {
+        buffer[j--] = encoding[duplicate % b];
+        duplicate /= b;
+      }
+    } else {
+      j = digits * (t.size - i) - 1 - offset;
+      buffer[j + 1] = '\0';
+      duplicate = t.parts[i];
+      for(k = 0; k < digits; k++) {
+        buffer[j - k] = encoding[0];
+      }
+      while (duplicate > 0) {
+        buffer[j--] = encoding[duplicate % b];
+        duplicate /= b;
       }
     }
   }
