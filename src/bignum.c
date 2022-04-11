@@ -82,13 +82,29 @@ void chainAddition(bigint* op, mytype toAdd, int index) {
 }
 
 void add(bigint* a1, bigint* a2) {
-  int sz = MAX(a1->size, a2->size);
+  int sz;
   int i;
+  sz = MAX(a1->size, a2->size);
   for(i = 0; i < sz; i++) {
     if(i < a2->size) {
       chainAddition(a1, a2->parts[i], i);
     }
   }
+}
+
+int getTotalDigitEstimate(bigint* a1, int base){
+  /* TODO: Fix this */
+  int digits;
+  mytype largest_num_for_base, test_num;
+  largest_num_for_base = 1;
+  test_num = base;
+  digits = 0;
+  while(test_num >= largest_num_for_base) {
+    largest_num_for_base = test_num;
+    test_num *= base;
+    digits++;
+  }
+  return digits * a1->size;
 }
 
 void chainAdditionWithCustomOverflow(bigint* op, mytype toAdd, int index, mytype custom_overflow) {
@@ -230,6 +246,7 @@ void printDecimalToString(char* buffer, bigint* a) {
   char fmt_for_base[50];
   largest_num_for_base = 1;
   test_num = 10;
+  digits = 0;
   while(test_num >= largest_num_for_base) {
     largest_num_for_base = test_num;
     test_num *= 10;
@@ -245,6 +262,7 @@ void printDecimalToString(char* buffer, bigint* a) {
       j += sprintf(buffer + j, fmt_for_base, t.parts[i]);
     }
   }
+  free(t.parts);
 }
 
 void printBaseToString(char* buffer, bigint* a, int b, char *encoding) {
@@ -291,4 +309,5 @@ void printBaseToString(char* buffer, bigint* a, int b, char *encoding) {
       }
     }
   }
+  free(t.parts);
 }

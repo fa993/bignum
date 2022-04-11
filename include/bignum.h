@@ -7,6 +7,7 @@ typedef struct bigint bigint;
 bigint* create(mytype num);
 int equals(bigint *a1, bigint *a2);
 void add(bigint* a1, bigint* a2);
+int getTotalDigitEstimate(bigint *a1, int base);
 void printBinaryToString(char* buffer, bigint* a1);
 void printHexToString(char* buffer, bigint* a1);
 void printDecimalToString(char* buffer, bigint* a1);
